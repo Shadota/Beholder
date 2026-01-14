@@ -883,8 +883,22 @@ async function init() {
 
     // Load HTML template
     const context = SillyTavern.getContext();
-    const settingsHtml = await $.get(`${context.extensionFolderPath}/third-party/Beholder/settings.html`);
-    $('#extensions_settings2').append(settingsHtml);
+
+    try {
+        if (context.renderExtensionTemplateAsync) {
+            // SillyTavern 1.12+ method
+            const settingsHtml = await context.renderExtensionTemplateAsync('third-party/Beholder', 'settings');
+            $('#extensions_settings2').append(settingsHtml);
+        } else {
+            // Fallback: construct path manually
+            const extensionPath = `/scripts/extensions/third-party/Beholder`;
+            const settingsHtml = await $.get(`${extensionPath}/settings.html`);
+            $('#extensions_settings2').append(settingsHtml);
+        }
+    } catch (err) {
+        console.error('[Beholder] Failed to load settings template:', err);
+        return;
+    }
 
     // Initialize UI
     initialize_tab_navigation();
