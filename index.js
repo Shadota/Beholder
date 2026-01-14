@@ -195,8 +195,10 @@ function togglePopout() {
 }
 
 function openPopout() {
-    const $inlineDrawer = $('#beholder_settings .inline-drawer-content');
-    const $drawerContentElement = $inlineDrawer.children().first();
+    if (POPOUT_VISIBLE) return;
+
+    const $drawer = $('#beholder_settings');
+    const $drawerContentElement = $drawer.find('.inline-drawer-content');
 
     $POPOUT = $(`
         <div id="bh_popout" class="draggable" style="display: none;">
@@ -206,7 +208,6 @@ function openPopout() {
                 <div class="fa-solid fa-arrows-left-right hoverglow dragReset" title="Reset to default size"></div>
                 <div class="fa-solid fa-grip drag-grabber hoverglow" title="Drag to move"></div>
                 <div class="fa-solid fa-lock-open hoverglow dragLock" title="Lock position"></div>
-                <div class="fa-solid fa-circle-xmark hoverglow dragClose" title="Close"></div>
             </div>
             <div id="bh_popout_content_container"></div>
         </div>
@@ -214,7 +215,9 @@ function openPopout() {
 
     $('body').append($POPOUT);
 
+    // Move the entire .inline-drawer-content (which contains tabs + panels) to popout
     $drawerContentElement.detach().appendTo($POPOUT.find('#bh_popout_content_container'));
+    $drawerContentElement.addClass('open').show();
     $DRAWER_CONTENT = $drawerContentElement;
 
     // Set up dragging
@@ -234,7 +237,6 @@ function openPopout() {
     load_popout_position();
 
     // Set up handlers
-    $POPOUT.find('.dragClose').on('click', () => closePopout());
     $POPOUT.find('.dragLock').on('click', () => togglePopoutLock());
     $POPOUT.find('.dragReset').on('click', () => resetPopoutSize());
 
@@ -258,7 +260,6 @@ function closePopout() {
 
     const $currentPopout = $POPOUT;
     const $currentDrawerContent = $DRAWER_CONTENT;
-    const $inlineDrawer = $('#beholder_settings .inline-drawer-content');
 
     const resizeObserver = $currentPopout.data('resize-observer');
     if (resizeObserver) {
@@ -266,14 +267,27 @@ function closePopout() {
     }
 
     $currentPopout.fadeOut(250, () => {
-        $currentDrawerContent.detach().appendTo($inlineDrawer);
+        // Get fresh reference to the drawer container
+        const $drawer = $('#beholder_settings');
+        const $inlineDrawer = $drawer.find('.inline-drawer');
+
+        if ($currentDrawerContent) {
+            // Move content back to drawer (inside .inline-drawer, not .inline-drawer-content)
+            $currentDrawerContent.detach().appendTo($inlineDrawer);
+            $currentDrawerContent.addClass('open').show();
+        }
+
         $currentPopout.remove();
 
-        POPOUT_VISIBLE = false;
-        $POPOUT = null;
-        $DRAWER_CONTENT = null;
-        update_popout_button_state();
+        if ($POPOUT === $currentPopout) {
+            $POPOUT = null;
+        }
     });
+
+    // Update state immediately
+    POPOUT_VISIBLE = false;
+    $DRAWER_CONTENT = null;
+    update_popout_button_state();
 }
 
 function make_popout_draggable($element) {
