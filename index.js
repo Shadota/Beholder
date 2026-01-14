@@ -607,7 +607,8 @@ async function generate_response(userMessage = null) {
     } catch (e) {
         clearTimeout(timeout);
         if (e.name === 'AbortError') {
-            show_status('Generation cancelled', 'info');
+            // Silent cancellation - don't show status for interrupted auto-gen
+            return null;
         } else {
             show_status(`Error: ${e.message}`, 'error');
         }
@@ -763,6 +764,7 @@ function start_auto_gen_timer() {
     autoGenTimer = setTimeout(async () => {
         if (!get_settings('enabled')) return;
         if (isGenerating) {
+            // Retry later if busy
             autoGenTimer = setTimeout(() => start_auto_gen_timer(), 5000);
             return;
         }
@@ -772,7 +774,8 @@ function start_auto_gen_timer() {
             add_message('assistant', response);
         }
 
-        autoGenTimer = null;
+        // Reschedule for continuous generation
+        start_auto_gen_timer();
     }, delay);
 }
 
@@ -783,10 +786,18 @@ function stop_auto_gen_timer() {
     }
 }
 
+function cancel_current_generation() {
+    if (abortController) {
+        abortController.abort();
+        abortController = null;
+    }
+}
+
 function on_main_chat_message() {
     if (!get_settings('enabled')) return;
+    cancel_current_generation();  // Cancel in-flight request
     stop_auto_gen_timer();
-    start_auto_gen_timer();
+    start_auto_gen_timer();       // Restart with fresh context
 }
 
 // ==================== EVENT HANDLERS ====================
@@ -801,9 +812,14 @@ function register_events() {
     });
 
     context.eventSource.on(context.eventTypes.CHAT_CHANGED, () => {
+        cancel_current_generation();  // Cancel any in-flight request
         stop_auto_gen_timer();
         load_messages();
         render_messages();
+        // Restart continuous timer for new chat
+        if (get_settings('enabled') && get_settings('endpoint_url')) {
+            start_auto_gen_timer();
+        }
     });
 
     eventsRegistered = true;
@@ -815,7 +831,13 @@ function bind_settings() {
     // Enable toggle
     $('#bh_enabled').on('change', function() {
         set_settings('enabled', $(this).prop('checked'));
-        if (!$(this).prop('checked')) {
+        if ($(this).prop('checked')) {
+            // Start continuous timer when enabled
+            if (get_settings('endpoint_url')) {
+                start_auto_gen_timer();
+            }
+        } else {
+            cancel_current_generation();
             stop_auto_gen_timer();
         }
     }).prop('checked', get_settings('enabled'));
@@ -926,6 +948,11 @@ async function init() {
 
     // Register events
     register_events();
+
+    // Start continuous auto-gen timer if enabled and configured
+    if (get_settings('enabled') && get_settings('endpoint_url')) {
+        start_auto_gen_timer();
+    }
 
     console.log('[Beholder] Extension loaded');
 }
