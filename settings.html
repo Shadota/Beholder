@@ -1,0 +1,168 @@
+<div id="beholder_settings">
+    <div class="inline-drawer">
+        <div class="inline-drawer-toggle inline-drawer-header">
+            <b>Beholder</b>
+            <i class="fa-solid fa-circle-chevron-down inline-drawer-icon"></i>
+        </div>
+        <div class="inline-drawer-content">
+            <!-- Tabs -->
+            <div class="bh_tabs">
+                <button class="bh_tab bh_tab_active" data-tab="chat">
+                    <i class="fa-solid fa-comments"></i> Chat
+                </button>
+                <button class="bh_tab" data-tab="settings">
+                    <i class="fa-solid fa-gear"></i> Settings
+                </button>
+            </div>
+
+            <!-- Tab Content: Chat -->
+            <div class="bh_tab_content bh_tab_content_active" data-tab="chat">
+                <div class="bh_chat_header">
+                    <button id="bh_chat_clear" class="menu_button" title="Clear conversation">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                    <button id="bh_chat_regenerate" class="menu_button" title="Generate response">
+                        <i class="fa-solid fa-rotate-right"></i>
+                    </button>
+                </div>
+                <div id="bh_chat_container" class="bh_chat_container">
+                    <div id="bh_chat_messages" class="bh_chat_messages">
+                        <!-- Messages inserted here -->
+                    </div>
+                </div>
+                <div class="bh_chat_input_container">
+                    <input id="bh_chat_input" class="text_pole bh_chat_input" type="text"
+                           placeholder="Type a message..." />
+                    <button id="bh_chat_send" class="menu_button bh_chat_send_btn">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
+                <div id="bh_generation_status" class="bh_status_message" style="margin-top: 8px;"></div>
+            </div>
+
+            <!-- Tab Content: Settings -->
+            <div class="bh_tab_content" data-tab="settings">
+                <!-- Enable Toggle + Name Section -->
+                <div class="bh_compact_checkbox">
+                    <input id="bh_enabled" type="checkbox" checked />
+                    <label for="bh_enabled">Enable Beholder</label>
+                </div>
+                <div class="bh_compact_input">
+                    <label for="bh_assistant_name">Assistant Name</label>
+                    <input id="bh_assistant_name" class="text_pole" type="text"
+                           placeholder="Beholder" value="Beholder" />
+                </div>
+
+                <!-- Endpoint Section -->
+                <div class="bh_section_header">
+                    <i class="fa-solid fa-plug"></i>
+                    <span>Assistant Endpoint</span>
+                </div>
+                <div class="bh_compact_input">
+                    <label for="bh_endpoint_url">
+                        Endpoint URL (OpenAI-compatible)
+                        <span class="bh_tooltip bh_tooltip_right">
+                            <i class="fa-solid fa-circle-info bh_info_icon"></i>
+                            <span class="bh_tooltip_text">Full URL to an OpenAI-compatible chat completions endpoint (e.g., http://localhost:1234/v1/chat/completions)</span>
+                        </span>
+                    </label>
+                    <input id="bh_endpoint_url" class="text_pole" type="text"
+                           placeholder="https://api.example.com/v1/chat/completions" />
+                </div>
+                <div class="bh_compact_input">
+                    <label for="bh_endpoint_api_key">API Key (optional)</label>
+                    <input id="bh_endpoint_api_key" class="text_pole" type="password"
+                           placeholder="sk-..." />
+                </div>
+                <div class="bh_button_row">
+                    <button id="bh_endpoint_test" class="menu_button">
+                        <i class="fa-solid fa-vial"></i> Test Connection
+                    </button>
+                </div>
+                <div id="bh_endpoint_status" class="bh_status_message"></div>
+
+                <!-- Prompts Section -->
+                <div class="bh_section_header">
+                    <i class="fa-solid fa-scroll"></i>
+                    <span>Prompts</span>
+                </div>
+                <div class="bh_compact_input">
+                    <label for="bh_system_prompt">
+                        System Prompt
+                        <span class="bh_tooltip bh_tooltip_right">
+                            <i class="fa-solid fa-circle-info bh_info_icon"></i>
+                            <span class="bh_tooltip_text">Explains to the AI that it's an observer of the main chat, not a participant</span>
+                        </span>
+                    </label>
+                    <textarea id="bh_system_prompt" class="text_pole" rows="6"></textarea>
+                </div>
+                <div class="bh_compact_input">
+                    <label for="bh_character_prompt">
+                        Character Prompt
+                        <span class="bh_tooltip bh_tooltip_right">
+                            <i class="fa-solid fa-circle-info bh_info_icon"></i>
+                            <span class="bh_tooltip_text">Defines the personality and behavior of your assistant character</span>
+                        </span>
+                    </label>
+                    <textarea id="bh_character_prompt" class="text_pole" rows="6"></textarea>
+                </div>
+
+                <!-- History Section -->
+                <div class="bh_section_header">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <span>History Settings</span>
+                </div>
+                <div class="bh_compact_input">
+                    <label for="bh_main_chat_depth">
+                        Main Chat History Depth
+                        <span class="bh_tooltip bh_tooltip_right">
+                            <i class="fa-solid fa-circle-info bh_info_icon"></i>
+                            <span class="bh_tooltip_text">How many messages from the main roleplay chat to include in context (1-20)</span>
+                        </span>
+                    </label>
+                    <input id="bh_main_chat_depth" class="text_pole" type="number"
+                           min="1" max="20" value="5" />
+                </div>
+                <div class="bh_compact_input">
+                    <label for="bh_assistant_chat_depth">
+                        Assistant Chat History Depth
+                        <span class="bh_tooltip bh_tooltip_right">
+                            <i class="fa-solid fa-circle-info bh_info_icon"></i>
+                            <span class="bh_tooltip_text">How many messages from this assistant conversation to include in context (1-20)</span>
+                        </span>
+                    </label>
+                    <input id="bh_assistant_chat_depth" class="text_pole" type="number"
+                           min="1" max="20" value="10" />
+                </div>
+
+                <!-- Timing Section -->
+                <div class="bh_section_header">
+                    <i class="fa-solid fa-stopwatch"></i>
+                    <span>Auto-Generation Timing</span>
+                </div>
+                <div class="bh_compact_input">
+                    <label for="bh_min_wait">
+                        Minimum Wait (seconds)
+                        <span class="bh_tooltip bh_tooltip_right">
+                            <i class="fa-solid fa-circle-info bh_info_icon"></i>
+                            <span class="bh_tooltip_text">Minimum time to wait after main chat activity before auto-generating a comment (5-300)</span>
+                        </span>
+                    </label>
+                    <input id="bh_min_wait" class="text_pole" type="number"
+                           min="5" max="300" value="30" />
+                </div>
+                <div class="bh_compact_input">
+                    <label for="bh_max_wait">
+                        Maximum Wait (seconds)
+                        <span class="bh_tooltip bh_tooltip_right">
+                            <i class="fa-solid fa-circle-info bh_info_icon"></i>
+                            <span class="bh_tooltip_text">Maximum time to wait before auto-generating a comment (10-600)</span>
+                        </span>
+                    </label>
+                    <input id="bh_max_wait" class="text_pole" type="number"
+                           min="10" max="600" value="120" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
