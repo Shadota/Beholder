@@ -591,7 +591,11 @@ async function generate_response(userMessage = null) {
     });
 
     abortController = new AbortController();
-    const timeout = setTimeout(() => abortController.abort(), 60000);
+    // 5 minute timeout for slow LLMs
+    const timeout = setTimeout(() => {
+        console.log('[Beholder] Request timed out after 5 minutes');
+        abortController.abort();
+    }, 300000);
 
     try {
         const resp = await fetch(url, {
