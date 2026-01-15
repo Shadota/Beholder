@@ -50,6 +50,7 @@ let assistantMessages = [];
 let autoGenTimer = null;
 let abortController = null;
 let isGenerating = false;
+let generationCancelled = false;  // Track if generation was externally cancelled
 let eventsRegistered = false;
 
 // Panel state
@@ -94,6 +95,12 @@ function save_settings() {
 function get_chat_id() {
     const context = SillyTavern.getContext();
     return context.chatId || 'default';
+}
+
+function is_chat_selected() {
+    const context = SillyTavern.getContext();
+    // Check if an actual chat is selected (not the default empty state)
+    return !!(context.chatId && context.chat && context.chat.length > 0);
 }
 
 function save_messages() {
@@ -601,8 +608,14 @@ async function generate_response(userMessage = null) {
             throw new Error('Empty response from endpoint');
         }
 
+        // Filter out think blocks and clean up
+        const filteredContent = filterThinkBlocks(content);
+        if (!filteredContent) {
+            throw new Error('Empty response after filtering');
+        }
+
         show_status('', 'clear');
-        return content.trim();
+        return filteredContent;
 
     } catch (e) {
         clearTimeout(timeout);
@@ -626,6 +639,12 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+function filterThinkBlocks(text) {
+    if (!text) return text;
+    // Remove <think>...</think> blocks (case-insensitive, handles multiline)
+    return text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 }
 
 function render_messages() {
@@ -752,6 +771,7 @@ function initialize_chat_handlers() {
 function start_auto_gen_timer() {
     if (!get_settings('enabled')) return;
     if (!get_settings('endpoint_url')) return;
+    if (!is_chat_selected()) return;  // Don't run without an active chat
 
     stop_auto_gen_timer();
 
@@ -769,7 +789,15 @@ function start_auto_gen_timer() {
             return;
         }
 
+        generationCancelled = false;  // Reset flag before generation
         const response = await generate_response(null);
+
+        // Don't reschedule if generation was externally cancelled
+        // (the canceller will have already started a new timer)
+        if (generationCancelled) {
+            return;
+        }
+
         if (response) {
             add_message('assistant', response);
         }
@@ -788,6 +816,7 @@ function stop_auto_gen_timer() {
 
 function cancel_current_generation() {
     if (abortController) {
+        generationCancelled = true;  // Mark as externally cancelled
         abortController.abort();
         abortController = null;
     }
