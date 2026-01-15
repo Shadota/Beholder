@@ -636,6 +636,7 @@ async function generate_response(userMessage = null) {
         if (e.name === 'AbortError') {
             // Silent cancellation - don't show status for interrupted auto-gen
             console.log('[Beholder] Request was aborted');
+            show_status('', 'clear');
             return null;
         } else {
             show_status(`Error: ${e.message}`, 'error');

@@ -55,7 +55,13 @@
 }
 
 .bh_tab_content_active {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.bh_tab_content[data-tab="chat"].bh_tab_content_active {
+    min-height: 0;  /* Allow flex shrinking */
 }
 
 @keyframes bh_fadeIn {
@@ -107,14 +113,16 @@
     width: 450px;
     min-width: 350px;
     max-width: calc(100vw - 20px);
-    max-height: calc(100vh - var(--topBarBlockSize, 50px) - 20px);
+    height: calc(100vh - var(--topBarBlockSize, 50px) - 20px);
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
     background-color: var(--SmartThemeBlurTintColor);
     border: 1px solid var(--SmartThemeBorderColor);
     border-radius: 10px;
     z-index: 10000;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-    resize: horizontal;
+    resize: both;
 }
 
 #bh_popout .panelControlBar {
@@ -178,12 +186,18 @@
 
 #bh_popout_content_container {
     padding: 0;
-    max-height: calc(100vh - var(--topBarBlockSize, 50px) - 80px);
-    overflow: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 #bh_popout_content_container .inline-drawer-content {
     padding: 15px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
 }
 
 /* ==================== POPOUT TOGGLE BUTTON ==================== */
@@ -436,7 +450,8 @@
     background: var(--black30a);
     border: 1px solid var(--SmartThemeBorderColor);
     border-radius: 8px;
-    height: 300px;
+    min-height: 200px;
+    flex: 1;
     overflow: hidden;
     display: flex;
     flex-direction: column;
