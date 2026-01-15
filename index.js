@@ -859,16 +859,41 @@ function cancel_current_generation() {
     }
 }
 
-function on_main_chat_message() {
+async function on_main_chat_message() {
     console.log('[Beholder] MESSAGE_RECEIVED event fired');
     if (!get_settings('enabled')) {
         console.log('[Beholder] Ignoring: disabled');
         return;
     }
-    console.log('[Beholder] Cancelling and restarting timer due to main chat message');
+    if (!get_settings('endpoint_url')) {
+        console.log('[Beholder] Ignoring: no endpoint configured');
+        return;
+    }
+    if (!is_chat_selected()) {
+        console.log('[Beholder] Ignoring: no chat selected');
+        return;
+    }
+
+    console.log('[Beholder] Main chat message received - generating immediately');
     cancel_current_generation();  // Cancel in-flight request
     stop_auto_gen_timer();
-    start_auto_gen_timer();       // Restart with fresh context
+
+    // Generate immediately with fresh context
+    generationCancelled = false;
+    const response = await generate_response(null);
+
+    if (generationCancelled) {
+        console.log('[Beholder] Generation was cancelled, not adding message');
+        return;
+    }
+
+    if (response) {
+        console.log('[Beholder] Adding message from main chat trigger');
+        add_message('assistant', response);
+    }
+
+    // Then restart the continuous timer
+    start_auto_gen_timer();
 }
 
 // ==================== EVENT HANDLERS ====================
