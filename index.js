@@ -554,18 +554,23 @@ async function generate_response(userMessage = null) {
     const url = get_settings('endpoint_url');
     const apiKey = get_settings('endpoint_api_key');
 
+    console.log(`[Beholder] generate_response called, userMessage: ${userMessage ? 'yes' : 'no (auto)'}`);
+
     if (!url) {
+        console.log('[Beholder] No endpoint configured');
         show_status('No endpoint configured', 'error');
         return null;
     }
 
     if (isGenerating) {
+        console.log('[Beholder] Already generating, skipping');
         return null;
     }
 
     isGenerating = true;
     set_input_state(false);
     show_status('Generating response...', 'info');
+    console.log('[Beholder] Starting fetch request...');
 
     const systemPrompt = get_settings('system_prompt');
     const characterPrompt = get_settings('character_prompt');
@@ -601,6 +606,7 @@ async function generate_response(userMessage = null) {
             throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
         }
 
+        console.log(`[Beholder] Fetch completed, status: ${resp.status}`);
         const data = await resp.json();
         const content = data?.choices?.[0]?.message?.content;
 
@@ -608,25 +614,31 @@ async function generate_response(userMessage = null) {
             throw new Error('Empty response from endpoint');
         }
 
+        console.log(`[Beholder] Got response, length: ${content.length}`);
+
         // Filter out think blocks and clean up
         const filteredContent = filterThinkBlocks(content);
         if (!filteredContent) {
             throw new Error('Empty response after filtering');
         }
 
+        console.log(`[Beholder] After filtering, length: ${filteredContent.length}`);
         show_status('', 'clear');
         return filteredContent;
 
     } catch (e) {
         clearTimeout(timeout);
+        console.log(`[Beholder] Error in generate_response: ${e.name} - ${e.message}`);
         if (e.name === 'AbortError') {
             // Silent cancellation - don't show status for interrupted auto-gen
+            console.log('[Beholder] Request was aborted');
             return null;
         } else {
             show_status(`Error: ${e.message}`, 'error');
         }
         return null;
     } finally {
+        console.log('[Beholder] generate_response cleanup');
         isGenerating = false;
         abortController = null;
         set_input_state(true);
@@ -769,9 +781,18 @@ function initialize_chat_handlers() {
 // ==================== AUTO GENERATION TIMER ====================
 
 function start_auto_gen_timer() {
-    if (!get_settings('enabled')) return;
-    if (!get_settings('endpoint_url')) return;
-    if (!is_chat_selected()) return;  // Don't run without an active chat
+    if (!get_settings('enabled')) {
+        console.log('[Beholder] Timer not started: disabled');
+        return;
+    }
+    if (!get_settings('endpoint_url')) {
+        console.log('[Beholder] Timer not started: no endpoint');
+        return;
+    }
+    if (!is_chat_selected()) {
+        console.log('[Beholder] Timer not started: no chat selected');
+        return;
+    }
 
     stop_auto_gen_timer();
 
@@ -780,11 +801,16 @@ function start_auto_gen_timer() {
     const actualMax = Math.max(maxWait, minWait + 10000);
 
     const delay = minWait + Math.random() * (actualMax - minWait);
+    console.log(`[Beholder] Timer started, will fire in ${Math.round(delay/1000)}s`);
 
     autoGenTimer = setTimeout(async () => {
-        if (!get_settings('enabled')) return;
+        console.log('[Beholder] Timer fired, starting generation...');
+        if (!get_settings('enabled')) {
+            console.log('[Beholder] Generation skipped: disabled');
+            return;
+        }
         if (isGenerating) {
-            // Retry later if busy
+            console.log('[Beholder] Generation skipped: already generating, retry in 5s');
             autoGenTimer = setTimeout(() => start_auto_gen_timer(), 5000);
             return;
         }
@@ -792,17 +818,22 @@ function start_auto_gen_timer() {
         generationCancelled = false;  // Reset flag before generation
         const response = await generate_response(null);
 
+        console.log(`[Beholder] Generation finished. Cancelled: ${generationCancelled}, Response: ${response ? 'yes' : 'no'}`);
+
         // Don't reschedule if generation was externally cancelled
         // (the canceller will have already started a new timer)
         if (generationCancelled) {
+            console.log('[Beholder] Not rescheduling: was cancelled externally');
             return;
         }
 
         if (response) {
+            console.log('[Beholder] Adding message to chat');
             add_message('assistant', response);
         }
 
         // Reschedule for continuous generation
+        console.log('[Beholder] Rescheduling timer...');
         start_auto_gen_timer();
     }, delay);
 }
@@ -816,6 +847,7 @@ function stop_auto_gen_timer() {
 
 function cancel_current_generation() {
     if (abortController) {
+        console.log('[Beholder] Cancelling current generation...');
         generationCancelled = true;  // Mark as externally cancelled
         abortController.abort();
         abortController = null;
@@ -823,7 +855,12 @@ function cancel_current_generation() {
 }
 
 function on_main_chat_message() {
-    if (!get_settings('enabled')) return;
+    console.log('[Beholder] MESSAGE_RECEIVED event fired');
+    if (!get_settings('enabled')) {
+        console.log('[Beholder] Ignoring: disabled');
+        return;
+    }
+    console.log('[Beholder] Cancelling and restarting timer due to main chat message');
     cancel_current_generation();  // Cancel in-flight request
     stop_auto_gen_timer();
     start_auto_gen_timer();       // Restart with fresh context
@@ -841,6 +878,7 @@ function register_events() {
     });
 
     context.eventSource.on(context.eventTypes.CHAT_CHANGED, () => {
+        console.log('[Beholder] CHAT_CHANGED event fired');
         cancel_current_generation();  // Cancel any in-flight request
         stop_auto_gen_timer();
         load_messages();
